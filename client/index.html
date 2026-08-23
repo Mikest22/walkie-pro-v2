@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<title>Walkie Pro V2 — Radio PTT</title>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/style.css"/>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+<div id="app">
+  <!-- START SCREEN -->
+  <section id="screen-start" class="screen active">
+    <div class="radio-shell">
+      <div class="header">
+        <div class="logo">📻 WALKIE PRO <span class="v2">V2</span></div>
+        <div class="subtitle">Radio PTT profesional • WebRTC • TURN TLS</div>
+      </div>
+
+      <div class="card">
+        <label>Tu nombre</label>
+        <input id="input-name" type="text" placeholder="Ej: Mike" maxlength="24" autocomplete="nickname"/>
+        <label>Sala</label>
+        <div class="row">
+          <input id="input-room" type="text" placeholder="RADIO-MIKE" maxlength="24" style="text-transform:uppercase"/>
+          <button id="btn-random" class="btn small ghost">🎲</button>
+        </div>
+        <div class="hint">Comparte el código. Todos en la misma sala se escuchan.</div>
+
+        <div class="actions">
+          <button id="btn-create" class="btn primary">CREAR SALA</button>
+          <button id="btn-join" class="btn secondary">ENTRAR</button>
+        </div>
+
+        <div id="share-box" class="share hidden">
+          <div class="share-label">Enlace de invitación</div>
+          <div class="share-row">
+            <input id="share-link" readonly/>
+            <button id="btn-copy" class="btn small">COPIAR</button>
+          </div>
+        </div>
+
+        <div id="start-error" class="error hidden"></div>
+      </div>
+
+      <div class="diag-mini" id="diag-mini">Comprobando audio...</div>
+    </div>
+  </section>
+
+  <!-- MAIN RADIO SCREEN -->
+  <section id="screen-radio" class="screen">
+    <div class="radio-shell main">
+      <div class="topbar">
+        <div class="logo small">📻 WALKIE PRO <span class="v2">V2</span></div>
+        <div class="right">
+          <span id="conn-dot" class="dot yellow"></span>
+          <span id="conn-text">CONECTANDO</span>
+        </div>
+      </div>
+
+      <div class="status-grid">
+        <div class="pill"><span class="k">SALA</span><span id="room-label" class="v">---</span></div>
+        <div class="pill"><span class="k">ICE</span><span id="ice-label" class="v">--</span></div>
+        <div class="pill"><span class="k">MODO</span><span id="mode-label" class="v">DIRECTO?</span></div>
+      </div>
+
+      <div class="channel-display">
+        <div id="channel-state" class="chan libre">CANAL LIBRE</div>
+        <div id="speaker-name" class="speaker hidden"></div>
+        <div class="vu-meter">
+          <div id="vu-bar" class="vu"></div>
+        </div>
+      </div>
+
+      <div class="users-panel">
+        <div class="users-head"><span>USUARIOS</span><span id="users-count">0</span></div>
+        <div id="users-list" class="users-list"></div>
+      </div>
+
+      <div class="ptt-wrap">
+        <button id="btn-ptt" class="ptt-btn" disabled>
+          <div class="ptt-inner">
+            <div id="ptt-icon" class="ptt-icon">🎙️</div>
+            <div id="ptt-label" class="ptt-label">PRESIONA PARA HABLAR</div>
+          </div>
+          <div class="ptt-ring"></div>
+        </button>
+        <div class="ptt-hint">Mantén presionado • Suelta para escuchar</div>
+      </div>
+
+      <div class="controls">
+        <div class="ctrl">
+          <span>🔊 Volumen</span>
+          <input id="vol" type="range" min="0" max="1" step="0.05" value="1"/>
+        </div>
+        <div class="ctrl-row">
+          <button id="btn-mute" class="btn small ghost">🔇 Mute</button>
+          <button id="btn-diag" class="btn small ghost">🛠️ Diagnóstico</button>
+          <button id="btn-leave" class="btn small danger">SALIR</button>
+        </div>
+      </div>
+
+      <div id="toast" class="toast hidden"></div>
+    </div>
+
+    <!-- Remote audios container -->
+    <div id="remote-audios" style="display:none"></div>
+  </section>
+
+  <!-- DIAGNOSTIC MODAL -->
+  <div id="modal-diag" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">Diagnóstico <button id="btn-close-diag" class="btn small ghost">✕</button></div>
+      <div id="diag-body" class="diag-body"></div>
+      <div class="modal-actions">
+        <button id="btn-test" class="btn secondary">PRUEBA DE CONEXIÓN</button>
+        <button id="btn-restart-ice" class="btn ghost small">Reiniciar ICE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<audio id="beep-in" preload="auto"></audio>
+<audio id="beep-out" preload="auto"></audio>
+
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>
