@@ -1,0 +1,56 @@
+export class SignalingClient {
+  constructor() {
+    this.socket = null;
+    this.handlers = {};
+    this.roomCode = null;
+  }
+  connect() {
+    if (this.socket && this.socket.connected) return this.socket;
+    this.socket = io({
+      transports: ['websocket','polling'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+    });
+    this.socket.on('connect', ()=> this.emitLocal('connected', { id: this.socket.id }));
+    this.socket.on('disconnect', (reason)=> this.emitLocal('disconnected', { reason }));
+    this.socket.on('connect_error', (err)=> this.emitLocal('connect_error', { err }));
+    // forward all server events
+    const evs = ['joined-room','user-joined','user-left','users-update','offer','answer','ice-candidate','talk-granted','talk-released','channel-busy','channel-state','error-msg'];
+    evs.forEach(ev=>{
+      this.socket.on(ev, (data)=> this.emitLocal(ev, data));
+    });
+    return this.socket;
+  }
+  on(event, cb) {
+    if (!this.handlers[event]) this.handlers[event]=[];
+    this.handlers[event].push(cb);
+  }
+  off(event, cb) {
+    if (!this.handlers[event]) return;
+    this.handlers[event]=this.handlers[event].filter(fn=>fn!==cb);
+  }
+  emitLocal(event, data) {
+    (this.handlers[event]||[]).forEach(fn=>{ try{ fn(data); } catch(e){ console.error(e);} });
+  }
+  joinRoom(roomCode, userName, deviceId) {
+    this.roomCode = roomCode;
+    this.socket.emit('join-room', { roomCode, userName, deviceId });
+  }
+  leaveRoom(roomCode) {
+    this.socket.emit('leave-room', { roomCode: roomCode || this.roomCode });
+  }
+  sendOffer(targetId, sdp, roomCode) {
+    this.socket.emit('offer', { targetId, sdp, roomCode });
+  }
+  sendAnswer(targetId, sdp, roomCode) {
+    this.socket.emit('answer', { targetId, sdp, roomCode });
+  }
+  sendIceCandidate(targetId, candidate, roomCode) {
+    this.socket.emit('ice-candidate', { targetId, candidate, roomCode });
+  }
+  requestTalk(roomCode) { this.socket.emit('request-talk', { roomCode }); }
+  releaseTalk(roomCode) { this.socket.emit('release-talk', { roomCode }); }
+}
