@@ -1,0 +1,59 @@
+export class Diagnostics {
+  constructor({ audioManager, webrtcManager, signaling }) {
+    this.audio = audioManager;
+    this.webrtc = webrtcManager;
+    this.signaling = signaling;
+  }
+
+  async runAll() {
+    const results = [];
+    // Mic
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ audio:true });
+      const ok = !!s.getAudioTracks().length;
+      s.getTracks().forEach(t=>t.stop());
+      results.push({ key:'Micrófono', value: ok ? 'OK' : 'FAIL', ok });
+    } catch(e){ results.push({ key:'Micrófono', value:`FAIL: ${e.name}`, ok:false }); }
+
+    // Signaling
+    results.push({ key:'Señalización', value: this.signaling?.socket?.connected ? 'OK - Conectado' : 'FAIL - Desconectado', ok: !!this.signaling?.socket?.connected });
+
+    // AudioContext
+    try {
+      const ac = this.audio.audioContext;
+      results.push({ key:'AudioContext', value: ac ? `${ac.state.toUpperCase()}` : 'No iniciado', ok: !!ac });
+    } catch(e){ results.push({ key:'AudioContext', value:'FAIL', ok:false }); }
+
+    // ICE servers
+    try {
+      const ice = this.webrtc?.iceServers || [];
+      const hasTurn = ice.some(s=> JSON.stringify(s.urls).includes('turn'));
+      results.push({ key:'STUN', value: ice.length>=2 ? 'OK' : 'WARN - pocos servidores', ok: ice.length>=1 });
+      results.push({ key:'TURN', value: hasTurn ? 'OK - TURN disponible' : 'WARN - solo STUN', ok: true });
+    } catch(e){ results.push({ key:'ICE', value:'FAIL', ok:false }); }
+
+    // PeerConnections
+    try {
+      const stats = this.webrtc?.getStats() || [];
+      if (!stats.length) results.push({ key:'WebRTC Peers', value:'0 peers (solo tú)', ok:true });
+      else stats.forEach(s=>{
+        results.push({ key:`Peer ${s.peerId.slice(0,5)}`, value:`${s.connectionState} / ICE ${s.iceConnectionState}`, ok: s.connectionState==='connected' });
+      });
+    } catch(e){}
+
+    // HTTPS
+    results.push({ key:'HTTPS', value: location.protocol==='https:' || location.hostname==='localhost' ? 'OK' : 'FAIL - requiere HTTPS para mic', ok: location.protocol==='https:' || location.hostname==='localhost' });
+
+    return results;
+  }
+
+  render(results, container) {
+    container.innerHTML='';
+    results.forEach(r=>{
+      const div = document.createElement('div');
+      div.className = `diag-line ${r.ok?'ok':'bad'}`;
+      div.innerHTML = `<span>${r.key}</span><span>${r.value}</span>`;
+      container.appendChild(div);
+    });
+  }
+}
